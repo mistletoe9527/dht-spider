@@ -4,17 +4,10 @@ config:
     port: 6881
     address:
       super-address-list:
-        # 以下是比较有名的节点.其中utorrent是比较好的.剩余两个有点垃圾
         - 127.0.0.1:6881
         - router.bittorrent.com:6881
         - router.bitcomet.com:6881
-        - dht.transmissionbt.com:6881
-        # 以下是我运行一段时间后,给我announce_peer请求topN节点
-        - 219.239.29.248:57512
-        - 42.199.54.36:12871
-        - 183.213.186.126:12598
-        - 117.73.240.255:12256
-        - 119.195.59.70:1175
+        - dht.transmissionbt.com:688
         - 180.158.197.148:6883
         - 223.72.54.74:16843
         - 101.106.239.235:22398
