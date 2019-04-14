@@ -29,7 +29,7 @@ public class FindNodeProcessor implements DHTProcess<ProcessDto>{
     private FindNodeTask findNodeTask;
 
     @Autowired
-    private RoutingTable routingTable;
+    private List<RoutingTable> routingTables;
 
     @Autowired
     private Sender sender;
@@ -37,7 +37,7 @@ public class FindNodeProcessor implements DHTProcess<ProcessDto>{
 
     @Override
     public void activeProcess(ProcessDto processDto) {
-        log.info("FindNodeProcessor activeProcess "+processDto.getMessageInfo());
+        log.info("FindNodeProcessor activeProcess "+processDto.getMessageInfo()+"talbesize="+routingTables.size());
         Map<String, Object> rMap = DHTUtil.getParamMap(processDto.getRawMap(), "r", "FIND_NODE,找不到r参数.map:" + processDto.getRawMap());
         List<Node> nodeList = DHTUtil.getNodeListByRMap(rMap);
         //为空退出
@@ -51,7 +51,7 @@ public class FindNodeProcessor implements DHTProcess<ProcessDto>{
         }
         byte[] id = DHTUtil.getParamString(rMap, "id", "FIND_NODE,找不到id参数.map:" + processDto.getRawMap()).getBytes(CharsetUtil.ISO_8859_1);
         //将发送消息的节点加入路由表
-        routingTable.put(new Node(id, processDto.getSender(), NodeRankEnum.FIND_NODE_RECEIVE.getKey()));
+        routingTables.get(processDto.getNum()).put(new Node(id, processDto.getSender(), NodeRankEnum.FIND_NODE_RECEIVE.getKey()));
 
     }
 
@@ -64,10 +64,10 @@ public class FindNodeProcessor implements DHTProcess<ProcessDto>{
                 .getBytes(CharsetUtil.ISO_8859_1);
         byte[] id = DHTUtil.getParamString(aMap, "id", "FIND_NODE,找不到id参数.map:" + processDto.getRawMap()).getBytes(CharsetUtil.ISO_8859_1);
         //查找
-        List<Node> nodes = routingTable.getForTop8(targetNodeId);
+        List<Node> nodes = routingTables.get(processDto.getNum()).getForTop8(targetNodeId);
         this.sender.findNodeReceive(processDto.getMessageInfo().getMessageId(), processDto.getSender(),
-                routingTable.getNodeIdStr(),nodes);
+                routingTables.get(processDto.getNum()).getNodeIdStr(),nodes,processDto.getNum());
         //操作路由表
-        routingTable.put(new Node(id, processDto.getSender(), NodeRankEnum.FIND_NODE.getKey()));
+        routingTables.get(processDto.getNum()).put(new Node(id, processDto.getSender(), NodeRankEnum.FIND_NODE.getKey()));
     }
 }

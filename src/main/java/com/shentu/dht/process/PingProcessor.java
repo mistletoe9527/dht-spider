@@ -8,6 +8,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
+import java.util.List;
+
 /**
  * Created by styb on 2019/3/15.
  */
@@ -16,7 +18,7 @@ import org.springframework.stereotype.Component;
 public class PingProcessor implements DHTProcess<ProcessDto>{
 
     @Autowired
-    private RoutingTable routingTable;
+    private List<RoutingTable> routingTables;
 
     @Autowired
     private Sender sender;
@@ -30,8 +32,8 @@ public class PingProcessor implements DHTProcess<ProcessDto>{
     @Override
     public void passiveProcess(ProcessDto processDto) {
         log.info("PingProcessor passiveProcess " + processDto.getMessageInfo());
-        this.sender.pingReceive(processDto.getSender(), routingTable.getNodeIdStr(),
-                processDto.getMessageInfo().getMessageId());
+        this.sender.pingReceive(processDto.getSender(), routingTables.get(processDto.getNum()).getNodeIdStr(),
+                processDto.getMessageInfo().getMessageId(),processDto.getNum());
     }
 
 

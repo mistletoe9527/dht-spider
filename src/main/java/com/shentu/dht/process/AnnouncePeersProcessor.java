@@ -8,6 +8,7 @@ import com.shentu.dht.process.constant.MethodConstant;
 import com.shentu.dht.process.dto.ProcessDto;
 import com.shentu.dht.request.AnnouncePeersRequest;
 import com.shentu.dht.server.Sender;
+import com.shentu.dht.task.FindMetaDataTask;
 import com.shentu.dht.task.FindNodeTask;
 import com.shentu.dht.util.DHTUtil;
 import com.shentu.dht.util.FileUtil;
@@ -15,6 +16,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -28,9 +30,11 @@ public class AnnouncePeersProcessor implements DHTProcess<ProcessDto>{
     @Autowired
     private Sender sender;
     @Autowired
-    private RoutingTable routingTable;
+    private List<RoutingTable> routingTables;
     @Autowired
     private FindNodeTask findNodeTask;
+    @Autowired
+    private FindMetaDataTask findMetaDataTask;
 
     @Override
     public void activeProcess(ProcessDto processDto) {
@@ -42,14 +46,15 @@ public class AnnouncePeersProcessor implements DHTProcess<ProcessDto>{
     public void passiveProcess(ProcessDto processDto) {
         AnnouncePeersRequest.AnnounceRequestContent requestContent = new AnnouncePeersRequest.AnnounceRequestContent(processDto.getRawMap(), processDto.getSender().getPort());
         log.info("{}收到消息1.",LOG+ JSONObject.toJSONString(requestContent));
-        FileUtil.wirte("peers=="+requestContent.getInfo_hash() + "," + DHTUtil.getIpBySender(processDto.getSender()) + ":" + requestContent.getPort() + ";\r\n");
+        FileUtil.wirte("peers=="+requestContent.getInfo_hash() + "," + DHTUtil.getIpBySender(processDto.getSender()) + ":" + requestContent.getPort()+":"+processDto.getNum() + ";\r\n");
         //回复
-        this.sender.announcePeerReceive(processDto.getMessageInfo().getMessageId(), processDto.getSender(), routingTable.getNodeIdStr());
+        this.sender.announcePeerReceive(processDto.getMessageInfo().getMessageId(), processDto.getSender(), routingTables.get(processDto.getNum()).getNodeIdStr(),processDto.getNum());
         Node node = new Node(DHTUtil.hexStr2Bytes(requestContent.getId()), processDto.getSender(), NodeRankEnum.ANNOUNCE_PEER.getKey());
         //加入路由表
-        routingTable.put(node);
+        routingTables.get(processDto.getNum()).put(node);
 
         //加入findNode任务队列
         findNodeTask.put(processDto.getSender());
+        findMetaDataTask.put(requestContent.getInfo_hash() + "," + DHTUtil.getIpBySender(processDto.getSender()) + "," + requestContent.getPort()+","+processDto.getNum());
     }
 }

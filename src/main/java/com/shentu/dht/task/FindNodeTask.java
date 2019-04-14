@@ -12,7 +12,9 @@ import org.apache.commons.lang3.RandomUtils;
 import org.springframework.stereotype.Component;
 
 import java.net.InetSocketAddress;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.stream.Collectors;
@@ -26,14 +28,13 @@ public class FindNodeTask {
 
 
     private Sender sender;
-    private RoutingTable routingTable;
     private Config config;
-
+    private List<RoutingTable> routingTables;
     private Map<String,GetPeersSendInfo> getPeersMap;
 
-    public FindNodeTask(Sender sender,RoutingTable routingTable,Config config,Map<String,GetPeersSendInfo> getPeersMap){
+    public FindNodeTask(Sender sender,List<RoutingTable> routingTables,Config config,Map<String,GetPeersSendInfo> getPeersMap){
         this.sender=sender;
-        this.routingTable=routingTable;
+        this.routingTables=routingTables;
         this.config=config;
         this.getPeersMap=getPeersMap;
     }
@@ -44,21 +45,28 @@ public class FindNodeTask {
     public void put(InetSocketAddress address){
         blockingQueue.offer(address);
     }
-
+    public static LinkedBlockingQueue<String> queue=new LinkedBlockingQueue();
     public void run() throws Exception{
         init();
         new Thread(()->{
+            try{
+                Thread.sleep(10000);
+            }catch (Exception e){
+            }
             for(;;){
                 try{
-                    sender.findNode(routingTable.getNodeIdStr(), DHTUtil.generateNodeIdString(),blockingQueue.take());
-                    Thread.sleep(2000);
+                    InetSocketAddress take = blockingQueue.take();
+                    for(int i=0;i<config.getThreadCount();i++){
+                        sender.findNode(routingTables.get(i).getNodeIdStr(), DHTUtil.generateNodeIdString(),take,i);
+                    }
+                    Thread.sleep(500);
                 }catch (Exception e){
                     e.printStackTrace();
                     log.error("error in FindNodeTask msg={}",e.getMessage());
                 }
             }
         }).start();
-        LinkedBlockingQueue<String> queue=new LinkedBlockingQueue();
+
         new Thread(
             ()->{
                 try{
@@ -66,26 +74,29 @@ public class FindNodeTask {
                 }catch (Exception e){}
                 for(;;){
                     try {
-                        Thread.sleep(10000);
+                        Thread.sleep(500);
                         String infoHashHexStr=queue.take();
-                        //消息id
-                        String messageId = DHTUtil.generateMessageId();
-                        //		log.info("{}开始新任务.消息Id:{},infoHash:{}", LOG, messageId, infoHashHexStr);
+                        for(int i=0;i<config.getThreadCount();i++){
+                            //消息id
+                            String messageId = DHTUtil.generateMessageId();
+                            //		log.info("{}开始新任务.消息Id:{},infoHash:{}", LOG, messageId, infoHashHexStr);
 
-                        //当前已发送节点id
-                        List<byte[]> nodeIdList = new ArrayList<>();
-                        //获取最近的8个地址
-                        List<Node> nodeList = routingTable.getForTop8(DHTUtil.hexStr2Bytes(infoHashHexStr));
-                        //目标nodeId
-                        nodeIdList.addAll(nodeList.stream().map(Node::getNodeIdBytes).collect(Collectors.toList()));
-                        //目标地址
-                        List<InetSocketAddress> addresses = nodeList.stream().map(Node::toAddress).collect(Collectors.toList());
-                        //存入缓存
-                        getPeersMap.put(messageId, new GetPeersSendInfo(infoHashHexStr).put(nodeIdList));
-                        //批量发送
-                        this.sender.getPeersBatch(addresses, routingTable.getNodeIdStr(), new String(DHTUtil.hexStr2Bytes(infoHashHexStr), CharsetUtil.ISO_8859_1), messageId);
+                            //当前已发送节点id
+                            List<byte[]> nodeIdList = new ArrayList<>();
+                            //获取最近的8个地址
+                            List<Node> nodeList = routingTables.get(i).getForTop8(DHTUtil.hexStr2Bytes(infoHashHexStr));
+                            //目标nodeId
+                            nodeIdList.addAll(nodeList.stream().map(Node::getNodeIdBytes).collect(Collectors.toList()));
+                            //目标地址
+                            List<InetSocketAddress> addresses = nodeList.stream().map(Node::toAddress).collect(Collectors.toList());
+                            //存入缓存
+                            getPeersMap.put(messageId, new GetPeersSendInfo(infoHashHexStr).put(nodeIdList));
+                            //批量发送
+                            this.sender.getPeersBatch(addresses, routingTables.get(i).getNodeIdStr(), new String(DHTUtil.hexStr2Bytes(infoHashHexStr), CharsetUtil.ISO_8859_1), messageId,i);
 //                        this.sender.announcePeer(routingTable.getNodeIdStr(),0,new String(RandomUtils.nextBytes(20), CharsetUtil.ISO_8859_1),6881,"styb", new InetSocketAddress("127.0.0.1", 6881));
 //                        Thread.sleep(10000);
+                        }
+
                     }catch (Exception e){
                         e.printStackTrace();
                     }
@@ -108,7 +119,8 @@ public class FindNodeTask {
                 queue.offer("40B0EF821CDB5FB7383D1E2EFD5CB45923B5A776");
                 for(;;){
                     queue.offer(DHTUtil.bytes2HexStr(RandomUtils.nextBytes(20)).toUpperCase());
-                    Thread.sleep(10000);
+                    queue.offer(DHTUtil.bytes2HexStr(RandomUtils.nextBytes(20)).toLowerCase());
+                    Thread.sleep(1000);
                 }
             }catch (Exception e){
             }
@@ -121,23 +133,6 @@ public class FindNodeTask {
         ).forEach(x-> put(x));
     }
 
-    public static void main(String[] args) {
-        String infoHashHexStr=DHTUtil.bytes2HexStr(RandomUtils.nextBytes(20));
-        System.out.println(infoHashHexStr.toUpperCase());
-
-        LinkedBlockingQueue<String> queue=new LinkedBlockingQueue();
-        queue.offer("40");
-        queue.offer("41");
-        queue.offer("42");
-        queue.offer("43");
-        for(int i=0;i<10;i++){
-
-
-            String poll = queue.poll();
-            System.out.println(poll);
-            queue.offer(poll);
-        }
-    }
 
 
 

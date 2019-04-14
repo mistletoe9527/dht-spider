@@ -246,4 +246,17 @@ public class DHTUtil {
     }
 
 
+    /**
+     * int 转 byte[4]
+     */
+    public static byte[] int2Bytes(int value) {
+        byte[] des = new byte[4];
+        des[3] = (byte) (value & 0xff);
+        des[2] = (byte) ((value >> 8) & 0xff);
+        des[1] = (byte) ((value >> 16) & 0xff);
+        des[0] = (byte) ((value >> 24) & 0xff);
+        return des;
+    }
+
+
 }

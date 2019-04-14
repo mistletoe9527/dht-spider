@@ -29,6 +29,8 @@ public class Config {
     private String token="styb";
 
     private Integer port;//监听端口
+
+    private Integer threadCount=10;
     @Data
     public static class Address{
 

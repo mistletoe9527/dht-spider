@@ -30,4 +30,6 @@ public class ProcessDto {
      */
     private InetSocketAddress sender;
 
+    private int num;
+
 }

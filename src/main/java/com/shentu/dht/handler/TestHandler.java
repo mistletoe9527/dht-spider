@@ -31,9 +31,13 @@ public class TestHandler extends SimpleChannelInboundHandler<DatagramPacket> {
 
     private ProcessManager processManager;
 
+    private int num;
+
     @Override
     public void channelActive(ChannelHandlerContext ctx) throws Exception {
-        sender.setChannel(ctx.channel());
+        log.info("TestHandlers start "+num);
+        sender.add(num, ctx.channel());
+        log.info("TestHandlers end num"+num +" id="+ctx.channel());
     }
     @Override
     protected void channelRead0(ChannelHandlerContext channelHandlerContext, DatagramPacket pkg) throws Exception {
@@ -65,7 +69,8 @@ public class TestHandler extends SimpleChannelInboundHandler<DatagramPacket> {
             log.debug("{}解析MessageInfo异常.异常:{}", LOG, e.getMessage(), e);
             return;
         }
-        processManager.process(new ProcessDto(messageInfo, map, sender));
+        log.info("processManagerProcess num={}",num);
+        processManager.process(new ProcessDto(messageInfo, map, sender,num));
 
     }
 

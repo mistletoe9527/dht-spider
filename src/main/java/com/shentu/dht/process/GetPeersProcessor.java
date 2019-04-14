@@ -11,6 +11,7 @@ import com.shentu.dht.process.dto.MessageInfo;
 import com.shentu.dht.process.dto.Peer;
 import com.shentu.dht.process.dto.ProcessDto;
 import com.shentu.dht.server.Sender;
+import com.shentu.dht.task.FindMetaDataTask;
 import com.shentu.dht.task.FindNodeTask;
 import com.shentu.dht.util.DHTUtil;
 import com.shentu.dht.util.FileUtil;
@@ -39,7 +40,7 @@ public class GetPeersProcessor implements DHTProcess<ProcessDto>{
     private FindNodeTask findNodeTask;
 
     @Autowired
-    private RoutingTable routingTable;
+    private List<RoutingTable> routingTables;
 
     @Autowired
     private Sender sender;
@@ -47,6 +48,8 @@ public class GetPeersProcessor implements DHTProcess<ProcessDto>{
     private Map<String,GetPeersSendInfo> getPeersMap;
     @Autowired
     private Config config;
+    @Autowired
+    private FindMetaDataTask findMetaDataTask;
 
 
 
@@ -64,13 +67,13 @@ public class GetPeersProcessor implements DHTProcess<ProcessDto>{
         byte[] id = DHTUtil.getParamString(rMap, "id", "GET_PEERS-RECEIVE,找不到id参数.map:" + rMap).getBytes(CharsetUtil.ISO_8859_1);
         //如果返回的是nodes
         if (rMap.get("nodes") != null) {
-            nodesHandler(messageInfo, sender, routingTable, getPeersSendInfo, rMap, id);
+            nodesHandler(messageInfo, sender, routingTables.get(processDto.getNum()), getPeersSendInfo, rMap, id,processDto.getNum());
             return;
         }
 
         if (rMap.get("values") == null) return ;
         //如果返回的是values peer
-        valuesHandler(messageInfo, rawMap, sender, routingTable, getPeersSendInfo, rMap, id);
+        valuesHandler(messageInfo, rawMap, sender, routingTables.get(processDto.getNum()), getPeersSendInfo, rMap, id,processDto.getNum());
     }
 
     @Override
@@ -80,21 +83,21 @@ public class GetPeersProcessor implements DHTProcess<ProcessDto>{
         Map<String, Object> aMap = DHTUtil.getParamMap(rawMap, "a", "GET_PEERS,找不到a参数.map:" + rawMap);
         byte[] infoHash = DHTUtil.getParamString(aMap, "info_hash", "GET_PEERS,找不到info_hash参数.map:" + rawMap).getBytes(CharsetUtil.ISO_8859_1);
         byte[] id = DHTUtil.getParamString(aMap, "id", "GET_PEERS,找不到id参数.map:" + rawMap).getBytes(CharsetUtil.ISO_8859_1);
-        List<Node> nodes = routingTable.getForTop8(infoHash);
+        List<Node> nodes = routingTables.get(processDto.getNum()).getForTop8(infoHash);
 //                    log.info("{}GET_PEERS,发送者:{},info_hash:{}", LOG, sender,info_hash);
         //回复时,将自己的nodeId伪造为 和该节点异或值相差不大的值
         this.sender.getPeersReceive(processDto.getMessageInfo().getMessageId(), sender,
                 DHTUtil.generateSimilarInfoHashString(id, 1),
-                config.getToken(), nodes);
+                config.getToken(), nodes,processDto.getNum());
         //加入路由表
-        routingTable.put(new Node(id, sender, NodeRankEnum.GET_PEERS.getKey()));
+        routingTables.get(processDto.getNum()).put(new Node(id, sender, NodeRankEnum.GET_PEERS.getKey()));
     }
 
 
     /**
      * 处理values返回
      */
-    private boolean valuesHandler(MessageInfo messageInfo, Map<String, Object> rawMap, InetSocketAddress sender, RoutingTable routingTable, GetPeersSendInfo getPeersSendInfo, Map<String, Object> rMap, byte[] id) {
+    private boolean valuesHandler(MessageInfo messageInfo, Map<String, Object> rawMap, InetSocketAddress sender, RoutingTable routingTable, GetPeersSendInfo getPeersSendInfo, Map<String, Object> rMap, byte[] id,int num) {
         log.info("valuesHandler "+ JSONObject.toJSONString(messageInfo));
         List<String> rawPeerList;
         try {
@@ -117,7 +120,11 @@ public class GetPeersProcessor implements DHTProcess<ProcessDto>{
         }
         //将peers连接为字符串
         final StringBuilder peersInfoBuilder = new StringBuilder();
-        peerList.forEach(peer -> peersInfoBuilder.append(peer.getIp()).append(":").append(peer.getPort()).append(";"));
+        peerList.forEach(peer -> {
+                peersInfoBuilder.append(peer.getIp()).append(":").append(peer.getPort()).append(":").append(num).append(";");
+                findMetaDataTask.put(getPeersSendInfo.getInfoHash()+","+peer.getIp()+","+peer.getPort()+","+num);
+            }
+        );
 
 //		log.info("{}发送者:{},info_hash:{},消息id:{},返回peers:{}", LOG, sender, getPeersSendInfo.getInfoHash(), messageInfo.getMessageId(), peersInfoBuilder.toString());
         //清除该任务缓存 和 连接peer任务
@@ -131,8 +138,6 @@ public class GetPeersProcessor implements DHTProcess<ProcessDto>{
         routingTable.put(new Node(id, sender, NodeRankEnum.GET_PEERS_RECEIVE_OF_VALUE.getKey()));
         //并向该节点发送findNode请求
         findNodeTask.put(sender);
-
-        //否则是格式错误,不做任何处理
         return true;
     }
 
@@ -145,7 +150,7 @@ public class GetPeersProcessor implements DHTProcess<ProcessDto>{
      * @param rMap 消息的原始map
      * @param id 对方id
      */
-    private boolean nodesHandler(MessageInfo messageInfo, InetSocketAddress sender, RoutingTable routingTable, GetPeersSendInfo getPeersSendInfo, Map<String, Object> rMap, byte[] id) {
+    private boolean nodesHandler(MessageInfo messageInfo, InetSocketAddress sender, RoutingTable routingTable, GetPeersSendInfo getPeersSendInfo, Map<String, Object> rMap, byte[] id,int num) {
         log.info("nodesHandler "+ JSONObject.toJSONString(messageInfo));
         List<Node> nodeList = DHTUtil.getNodeListByRMap(rMap);
         if(CollectionUtils.isNotEmpty(nodeList)){
@@ -154,7 +159,7 @@ public class GetPeersProcessor implements DHTProcess<ProcessDto>{
             }
         }
         //向新节点发送消息
-        nodeList.forEach(item -> this.sender.findNode(routingTable.getNodeIdStr(), DHTUtil.generateNodeIdString(),item.toAddress()));
+        nodeList.forEach(item -> this.sender.findNode(routingTable.getNodeIdStr(), DHTUtil.generateNodeIdString(),item.toAddress(),num));
         //将消息发送者加入路由表.
         routingTable.put(new Node(id, sender, NodeRankEnum.GET_PEERS_RECEIVE.getKey()));
         //                    log.info("{}GET_PEERS-RECEIVE,发送者:{},info_hash:{},消息id:{},返回nodes", LOG, sender, getPeersSendInfo.getInfoHash(), messageInfo.getMessageId());
@@ -176,7 +181,7 @@ public class GetPeersProcessor implements DHTProcess<ProcessDto>{
         //批量发送请求
         this.sender.getPeersBatch(unSentAddressList, routingTable.getNodeIdStr(),
                 new String(DHTUtil.hexStr2Bytes(getPeersSendInfo.getInfoHash()), CharsetUtil.ISO_8859_1),
-                messageInfo.getMessageId());
+                messageInfo.getMessageId(),num);
         return true;
     }
 }
