@@ -2,6 +2,7 @@ server:
   port: 8082
 config:
     port: 6905
+    threadCount: 20
     address:
       super-address-list:
         - dht.transmissionbt.com:6881

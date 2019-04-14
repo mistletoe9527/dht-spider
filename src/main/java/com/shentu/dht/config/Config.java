@@ -30,7 +30,7 @@ public class Config {
 
     private Integer port;//监听端口
 
-    private Integer threadCount=10;
+    private Integer threadCount;
     @Data
     public static class Address{
 
