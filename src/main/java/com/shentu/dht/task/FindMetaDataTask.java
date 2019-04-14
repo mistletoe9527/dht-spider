@@ -57,7 +57,7 @@ public class FindMetaDataTask {
 
     @SneakyThrows
     public void run() throws Exception{
-//        init();
+        init();
         new Thread(()->{
 
             for(;;){

@@ -20,10 +20,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.ArrayUtils;
 
 import java.net.InetSocketAddress;
-import java.util.ArrayList;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.stream.Collectors;
 
 /**
@@ -119,9 +116,10 @@ public class SearchMetaDataHandler extends SimpleChannelInboundHandler<ByteBuf> 
             }else{
                 writeData(ctx, (String) resultMap.get("name"));
                 nameInfo.add((String)resultMap.get("name"));
-                esClient.index(new MetaData(this.infoHash,Long.parseLong((String)resultMap.get("length")),(String)resultMap.get("name"),JSONObject.toJSONString(nameInfo)));
+                esClient.index(new MetaData(this.infoHash,Long.parseLong(String.valueOf(resultMap.get("length"))), String.valueOf(resultMap.get("name")), JSONObject.toJSONString(nameInfo)));
             }
         }
+
 
 
     }
