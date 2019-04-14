@@ -89,7 +89,7 @@ public class ESClient implements InitializingBean{
         client.index(indexRequest, RequestOptions.DEFAULT);
     }
 
-    private List<MetaData> search(String searchValue) throws Exception{
+    public List<MetaData> search(String searchValue) throws Exception{
         List<MetaData> list=new ArrayList<>();
         SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder();
         searchSourceBuilder.from(0);
@@ -113,7 +113,7 @@ public class ESClient implements InitializingBean{
 
     public static void main(String[] args) throws Exception{
 //        ESClient.esClient.createIndex();
-        List<MetaData> ss = ESClient.esClient.search("TrinityGoodheart");
+        List<MetaData> ss = ESClient.esClient.search("SIS001影视联盟");
         System.out.println(JSONObject.toJSONString(ss));
         JSONArray ja=(JSONArray) JSONArray.parse(ss.get(0).getNameInfo());
         ja.stream().forEach(v->{
@@ -128,4 +128,6 @@ public class ESClient implements InitializingBean{
                 RestClient.builder(
                         new HttpHost("39.98.254.52", 9200, "http")));
     }
+
+
 }

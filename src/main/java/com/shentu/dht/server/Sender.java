@@ -99,7 +99,7 @@ public class Sender{
         GetPeersRequest request = new GetPeersRequest(messageId,nodeId, infoHash);
         for (InetSocketAddress address : addresses) {
             try {
-                log.info("bencode.encode(DHTUtil.beanToMap(request))"+bencode.encode(DHTUtil.beanToMap(request)));
+//                log.info("bencode.encode(DHTUtil.beanToMap(request))"+bencode.encode(DHTUtil.beanToMap(request)));
                 channels.get(num).writeAndFlush(new DatagramPacket(Unpooled.copiedBuffer(bencode.encode(DHTUtil.beanToMap(request))), address));
             Thread.sleep(500);
             } catch (Exception e) {

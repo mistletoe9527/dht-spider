@@ -25,22 +25,24 @@ public class FileUtil {
 
     private static String dataPath="data.txt";
 
+    private static final String path="/usr/local/src/log/";
+
     @SneakyThrows
     public static void wirte(String value) {
         if(value.contains("10653ce58fbeec7d4c056e0e0613fc9588ce5023")){
             return;
         }
-        FileUtils.write(new File("/usr/local/src/log/"+filePath),value,"utf-8",true);
+        FileUtils.write(new File(path+filePath),value,"utf-8",true);
     }
 
     @SneakyThrows
     public static void wirteData(String value) {
-        FileUtils.write(new File("/usr/local/src/log/"+dataPath),value,"utf-8",true);
+        FileUtils.write(new File(path+dataPath),value,"utf-8",true);
     }
 
     @SneakyThrows
     public static void wirteNode(String value) {
-        FileUtils.write(new File("/usr/local/src/log/"+nodePath),value,"utf-8",true);
+//        FileUtils.write(new File(path+nodePath),value,"utf-8",true);
     }
 
     @SneakyThrows
@@ -48,7 +50,7 @@ public class FileUtil {
         @Cleanup BufferedReader bufferedReader=new BufferedReader(
                 new InputStreamReader(
                         new FileInputStream(
-                                new File("/usr/local/src/log/"+filePath))));
+                                new File(path+filePath))));
         List<String> result=new ArrayList<String>();
         String line=null;
         while((line=bufferedReader.readLine())!=null) {
