@@ -10,6 +10,7 @@ import org.springframework.beans.BeanUtils;
 
 import java.net.InetSocketAddress;
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
 /**
@@ -20,7 +21,7 @@ public class RoutingTable {
 
     private byte[] nodeId= RandomUtils.nextBytes(20);
     private String nodeIdStr=new String(nodeId, CharsetUtil.ISO_8859_1);
-    private Map<Integer,PriorityQueue<Node>> tableMap=new HashMap<>();
+    private Map<Integer,PriorityQueue<Node>> tableMap=new ConcurrentHashMap<>();
     private Bucket bucket=new Bucket(0,null);
 
 
@@ -28,6 +29,11 @@ public class RoutingTable {
         return Arrays.asList(new Node(nodeId,new InetSocketAddress("127.0.0.1",7000),0));
     }
 
+    /**
+     * 根据nodeid 查找最近的8个node
+     * @param trargetBytes 需要查找目标id
+     * @return
+     */
     public List<Node> getForTop8(byte[] trargetBytes){
         int bucketIndex = getBucketIndex(trargetBytes);
         List<Node> l=new ArrayList<>();
@@ -71,7 +77,6 @@ public class RoutingTable {
 
     }
     public void put(Node node) {
-
         int bucketIndex = getBucketIndex(node);
         if(bucketIndex==0){//是自己就不用加入了
             return;
@@ -128,6 +133,14 @@ public class RoutingTable {
         return true;
     }
 
+    /**
+     * @param pq 当前bucket
+     * @param node 需要插入的node
+     * @param isSplit 是否需要分裂
+     * @param bucket 需要插入的bucket的位置
+     * @param tableMap 路由表
+     * @return 返回是否添加成功
+     */
     @SneakyThrows
     public boolean putAccurate(PriorityQueue<Node> pq,Node node,boolean isSplit,Bucket bucket,Map<Integer,PriorityQueue<Node>> tableMap){
         boolean isAdd=false;
@@ -138,15 +151,16 @@ public class RoutingTable {
             pq.add(node);
             isAdd=true;
         }
-        if(isSplit && !isAdd){//需要分裂
+        if(isSplit && !isAdd){
             PriorityQueue<Node> priorityQueue=new PriorityQueue<Node>((x,y)->x.getRank()-y.getRank());
             priorityQueue.add(node);
             tableMap.putIfAbsent(node.getK(),priorityQueue);
-            //创建新的k桶后需要吧两边的都放到自己的k桶里面 如果超过8个就丢了 最好是可以ping一下
+            //创建新的k桶后需要把两边的bucket距离比较近的都放到自己的k桶里面 如果超过8个就丢了 最好是可以ping一下
             //先从小的开始放
             PriorityQueue<Node> collect1 = new PriorityQueue<>();
             collect1.addAll(tableMap.get(bucket.getK()).stream().filter(n -> {
-                if (priorityQueue.size() < 8 && Math.abs(n.getK() - n.getCurrentK()) > Math.abs(n.getK() - node.getK())) {
+                if (priorityQueue.size() < 8 &&
+                        Math.abs(n.getK() - n.getCurrentK()) > Math.abs(n.getK() - node.getK())) {
                     n.setCurrentK(node.getK());
                     priorityQueue.add(n);
                     return false;
@@ -157,7 +171,8 @@ public class RoutingTable {
             if(bucket.next!=null && CollectionUtils.isNotEmpty(tableMap.get(bucket.next.getK()))){
                 PriorityQueue<Node> collect = new PriorityQueue<>();
                 collect.addAll(tableMap.get(bucket.next.getK()).stream().filter(n -> {
-                    if (priorityQueue.size() < 8 && Math.abs(n.getK() - n.getCurrentK()) > Math.abs(n.getK() - node.getK())) {
+                    if (priorityQueue.size() < 8 &&
+                            Math.abs(n.getK() - n.getCurrentK()) > Math.abs(n.getK() - node.getK())) {
                         n.setCurrentK(node.getK());
                         priorityQueue.add(n);
                         return false;

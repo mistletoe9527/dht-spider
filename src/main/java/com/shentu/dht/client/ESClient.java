@@ -1,7 +1,6 @@
 package com.shentu.dht.client;
 
-import com.alibaba.fastjson.JSONArray;
-import com.alibaba.fastjson.JSONObject;
+import com.shentu.dht.config.Config;
 import com.shentu.dht.process.dto.MetaData;
 import org.apache.http.HttpHost;
 import org.elasticsearch.action.index.IndexRequest;
@@ -19,6 +18,7 @@ import org.elasticsearch.search.SearchHit;
 import org.elasticsearch.search.SearchHits;
 import org.elasticsearch.search.builder.SearchSourceBuilder;
 import org.springframework.beans.factory.InitializingBean;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import java.util.*;
@@ -30,8 +30,9 @@ import java.util.concurrent.TimeUnit;
 @Component
 public class ESClient implements InitializingBean{
 
-    public static ESClient esClient=new ESClient();
-    private static   RestHighLevelClient client=null;
+    @Autowired
+    private Config config;
+    private  RestHighLevelClient client=null;
 
     public  void createIndex() throws Exception{
         XContentBuilder builder = XContentFactory.jsonBuilder();
@@ -113,12 +114,14 @@ public class ESClient implements InitializingBean{
 
     public static void main(String[] args) throws Exception{
 //        ESClient.esClient.createIndex();
-        List<MetaData> ss = ESClient.esClient.search("SIS001影视联盟");
-        System.out.println(JSONObject.toJSONString(ss));
-        JSONArray ja=(JSONArray) JSONArray.parse(ss.get(0).getNameInfo());
-        ja.stream().forEach(v->{
-            System.out.println(v);
-        });
+//        List<MetaData> ss = ESClient.esClient.search("SIS001影视联盟");
+//        System.out.println(JSONObject.toJSONString(ss));
+//        JSONArray ja=(JSONArray) JSONArray.parse(ss.get(0).getNameInfo());
+//        ja.stream().forEach(v->{
+//            System.out.println(v);
+//        });
+//
+
     }
 
 
@@ -126,7 +129,7 @@ public class ESClient implements InitializingBean{
     public void afterPropertiesSet() throws Exception {
         client = new RestHighLevelClient(
                 RestClient.builder(
-                        new HttpHost("39.98.254.52", 9200, "http")));
+                        new HttpHost(config.getEsHost(), config.getEsPort(), "http")));
     }
 
 

@@ -25,7 +25,7 @@ public class FileUtil {
 
     private static String dataPath="data.txt";
 
-    private static final String path="/usr/local/src/log/";
+    private static final String path="";
 
     @SneakyThrows
     public static void wirte(String value) {

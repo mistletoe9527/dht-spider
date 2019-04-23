@@ -51,6 +51,8 @@ public class GetPeersProcessor implements DHTProcess<ProcessDto>{
     @Autowired
     private FindMetaDataTask findMetaDataTask;
 
+    private int maxPeers=1000;
+
 
 
     @Override
@@ -64,6 +66,10 @@ public class GetPeersProcessor implements DHTProcess<ProcessDto>{
         Map<String, Object> rMap = DHTUtil.getParamMap(rawMap, "r", "");
         //缓存过期，则不做任何处理了
         if (getPeersSendInfo == null) return;
+        if(getPeersSendInfo.getSentNodeIds().size()>maxPeers){
+            getPeersMap.remove(messageInfo.getMessageId());
+            return;
+        }
         byte[] id = DHTUtil.getParamString(rMap, "id", "GET_PEERS-RECEIVE,找不到id参数.map:" + rMap).getBytes(CharsetUtil.ISO_8859_1);
         //如果返回的是nodes
         if (rMap.get("nodes") != null) {

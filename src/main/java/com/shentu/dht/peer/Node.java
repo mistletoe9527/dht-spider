@@ -29,7 +29,7 @@ public class Node implements Comparable<Node>{
 
     private Integer port;
 
-    private Date updateTime;//最后更新时间
+    private Date updateTime;//最后更新时间 暂时没实现
 
     private byte[] nodeIdBytes;//20字节
 
@@ -38,6 +38,7 @@ public class Node implements Comparable<Node>{
     private Integer currentK=0;//当前的位置
 
     private Integer rank=0;
+
 
 
     @Override

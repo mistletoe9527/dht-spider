@@ -34,6 +34,13 @@ public class Sender{
         channels.put(num,channel);
     }
 
+    /**
+     * find_node
+     * @param node 自己的id
+     * @param target 目标id
+     * @param address 请求地址
+     * @param num
+     */
     public void findNode(String node,String target,InetSocketAddress address,int num){
         if(!channels.get(num).isWritable()){
             return;
