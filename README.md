@@ -6,7 +6,12 @@
 爬虫主要是通过BitTorrent dht协议
 搜索使用es
 # 使用
-只需要配置一下esHost 和esPort
+
+只需要配置一下es的两个参数esHost 和esPort
+server：port表示web端口
+config:port 表示udp开启的端口
+threadCount：线程数
+如果threadCount是20，表示会有20个node加入dht，也就是会开放20个udp端口从6905~6924
 ```
 server:
   port: 8082
@@ -33,5 +38,4 @@ public class FileUtil {
     private static final String path="";
 }
 ```
-
-[具体介绍](https://www.cnblogs.com/mistletoe9527/p/10734762.html)
+从概念到实现分成了四篇,点击可看[具体介绍](https://www.cnblogs.com/mistletoe9527/p/10734762.html)
