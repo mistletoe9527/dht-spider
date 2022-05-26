@@ -44,6 +44,5 @@ public class FileUtil {
     private static final String path="";
 }
 ```
-从概念到实现分成了四篇,点击可看[具体介绍](https://www.cnblogs.com/mistletoe9527/p/10734762.html)
 # License
 See the [License](https://github.com/mistletoe9527/dht-spider/blob/master/LICENSE) file for details.
